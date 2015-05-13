@@ -516,7 +516,6 @@ OpenCLIntegrationUtilities::OpenCLIntegrationUtilities(OpenCLContext& context, c
                 vsite3AvgAtomVec.push_back(mm_int4(i, site.getParticle(0), site.getParticle(1), site.getParticle(2)));
                 vsite3AvgWeightVec.push_back(mm_double4(site.getWeight(0), site.getWeight(1), site.getWeight(2), 0.0));
             }
-			//Modified by K.M.Visscher
 			else if (dynamic_cast<const ParticleGroupAverageSite*>(&system.getVirtualSite(i)) != NULL) {
 				// 15 particle group average
 				const ParticleGroupAverageSite &site = dynamic_cast<const ParticleGroupAverageSite&>(system.getVirtualSite(i));
@@ -566,17 +565,13 @@ OpenCLIntegrationUtilities::OpenCLIntegrationUtilities(OpenCLContext& context, c
     int num3Avg = vsite3AvgAtomVec.size();
     int numOutOfPlane = vsiteOutOfPlaneAtomVec.size();
     int numLocalCoords = vsiteLocalCoordsAtomVec.size();
-	
-	//Modified by K.M.Visscher
 	int numGroupAvg = vsiteGroupAvgAtomVec.size() / 16;
-	
-	//Modified by K.M.Visscher
+
     numVsites = num2Avg+num3Avg+numOutOfPlane+numLocalCoords+numGroupAvg;
 	
     vsite2AvgAtoms = OpenCLArray::create<mm_int4>(context, max(1, num2Avg), "vsite2AvgAtoms");
     vsite3AvgAtoms = OpenCLArray::create<mm_int4>(context, max(1, num3Avg), "vsite3AvgAtoms");
 	
-	//Modified by K.M.Visscher
 	vsiteGroupAvgAtoms = OpenCLArray::create<cl_int>(context, max(1, 16*numGroupAvg), "vsiteGroupAvgAtoms");
     vsiteOutOfPlaneAtoms = OpenCLArray::create<mm_int4>(context, max(1, numOutOfPlane), "vsiteOutOfPlaneAtoms");
     vsiteLocalCoordsAtoms = OpenCLArray::create<mm_int4>(context, max(1, numLocalCoords), "vsiteLocalCoordinatesAtoms");
@@ -585,11 +580,8 @@ OpenCLIntegrationUtilities::OpenCLIntegrationUtilities(OpenCLContext& context, c
         vsite2AvgAtoms->upload(vsite2AvgAtomVec);
     if (num3Avg > 0)
         vsite3AvgAtoms->upload(vsite3AvgAtomVec);
-	
-	//Modified by K.M.Visscher
     if (numGroupAvg > 0)
         vsiteGroupAvgAtoms->upload(vsiteGroupAvgAtomVec);
-	
     if (numOutOfPlane > 0)
         vsiteOutOfPlaneAtoms->upload(vsiteOutOfPlaneAtomVec);
     if (numLocalCoords > 0)
@@ -598,8 +590,6 @@ OpenCLIntegrationUtilities::OpenCLIntegrationUtilities(OpenCLContext& context, c
     if (context.getUseDoublePrecision()) {
         vsite2AvgWeights = OpenCLArray::create<mm_double2>(context, max(1, num2Avg), "vsite2AvgWeights");
         vsite3AvgWeights = OpenCLArray::create<mm_double4>(context, max(1, num3Avg), "vsite3AvgWeights");
-		
-		//Modified by K.M.Visscher
 		vsiteGroupAvgWeights = OpenCLArray::create<cl_double>(context, max(1, 16*numGroupAvg), "vsiteGroupAvgWeights");
         vsiteOutOfPlaneWeights = OpenCLArray::create<mm_double4>(context, max(1, numOutOfPlane), "vsiteOutOfPlaneWeights");
         vsiteLocalCoordsParams = OpenCLArray::create<cl_double>(context, max(1, 12*numLocalCoords), "vsiteLocalCoordinatesParams");
@@ -607,8 +597,6 @@ OpenCLIntegrationUtilities::OpenCLIntegrationUtilities(OpenCLContext& context, c
             vsite2AvgWeights->upload(vsite2AvgWeightVec);
         if (num3Avg > 0)
             vsite3AvgWeights->upload(vsite3AvgWeightVec);
-		
-		//Modified by K.M.Visscher
 		if (numGroupAvg > 0)
 			vsiteGroupAvgWeights->upload(vsiteGroupAvgWeightVec);
         if (numOutOfPlane > 0)
@@ -619,8 +607,6 @@ OpenCLIntegrationUtilities::OpenCLIntegrationUtilities(OpenCLContext& context, c
     else {
         vsite2AvgWeights = OpenCLArray::create<mm_float2>(context, max(1, num2Avg), "vsite2AvgWeights");
         vsite3AvgWeights = OpenCLArray::create<mm_float4>(context, max(1, num3Avg), "vsite3AvgWeights");
-		
-		//Modified by K.M.Visscher
 		vsiteGroupAvgWeights = OpenCLArray::create<cl_float>(context, max(1, 16*numGroupAvg), "vsiteGroupAvgWeights");
         vsiteOutOfPlaneWeights = OpenCLArray::create<mm_float4>(context, max(1, numOutOfPlane), "vsiteOutOfPlaneWeights");
         vsiteLocalCoordsParams = OpenCLArray::create<float>(context, max(1, 12*numLocalCoords), "vsiteLocalCoordinatesParams");
@@ -637,7 +623,6 @@ OpenCLIntegrationUtilities::OpenCLIntegrationUtilities(OpenCLContext& context, c
             vsite3AvgWeights->upload(floatWeights);
         }
 		
-		//Modified by K.M.Visscher
 		if (numGroupAvg > 0)
 		{
 			vector<cl_float> floatWeights(16*numGroupAvg);
@@ -679,10 +664,7 @@ OpenCLIntegrationUtilities::OpenCLIntegrationUtilities(OpenCLContext& context, c
     map<string, string> defines;
     defines["NUM_2_AVERAGE"] = context.intToString(num2Avg);
     defines["NUM_3_AVERAGE"] = context.intToString(num3Avg);
-	
-	//Modified by K.M.Visscher
 	defines["NUM_GROUP_AVERAGE"] = context.intToString(numGroupAvg);
-	
     defines["NUM_OUT_OF_PLANE"] = context.intToString(numOutOfPlane);
     defines["NUM_LOCAL_COORDS"] = context.intToString(numLocalCoords);
     defines["NUM_ATOMS"] = context.intToString(numAtoms);
@@ -703,8 +685,6 @@ OpenCLIntegrationUtilities::OpenCLIntegrationUtilities(OpenCLContext& context, c
     vsitePositionKernel.setArg<cl::Buffer>(index++, vsiteOutOfPlaneWeights->getDeviceBuffer());
     vsitePositionKernel.setArg<cl::Buffer>(index++, vsiteLocalCoordsAtoms->getDeviceBuffer());
     vsitePositionKernel.setArg<cl::Buffer>(index++, vsiteLocalCoordsParams->getDeviceBuffer());
-	
-	//Modified by K.M.Visscher
     vsitePositionKernel.setArg<cl::Buffer>(index++, vsiteGroupAvgAtoms->getDeviceBuffer());
     vsitePositionKernel.setArg<cl::Buffer>(index++, vsiteGroupAvgWeights->getDeviceBuffer());
 	
@@ -724,8 +704,6 @@ OpenCLIntegrationUtilities::OpenCLIntegrationUtilities(OpenCLContext& context, c
     vsiteForceKernel.setArg<cl::Buffer>(index++, vsiteOutOfPlaneWeights->getDeviceBuffer());
     vsiteForceKernel.setArg<cl::Buffer>(index++, vsiteLocalCoordsAtoms->getDeviceBuffer());
     vsiteForceKernel.setArg<cl::Buffer>(index++, vsiteLocalCoordsParams->getDeviceBuffer());
-	
-	//Modified by K.M.Visscher
     vsiteForceKernel.setArg<cl::Buffer>(index++, vsiteGroupAvgAtoms->getDeviceBuffer());
     vsiteForceKernel.setArg<cl::Buffer>(index++, vsiteGroupAvgWeights->getDeviceBuffer());
 	
@@ -788,8 +766,6 @@ OpenCLIntegrationUtilities::~OpenCLIntegrationUtilities() {
         delete vsiteLocalCoordsAtoms;
     if (vsiteLocalCoordsParams != NULL)
         delete vsiteLocalCoordsParams;
-	
-	//Modified by K.M.Visscher
     if (vsiteGroupAvgAtoms != NULL)
         delete vsiteGroupAvgAtoms;
     if (vsiteGroupAvgWeights != NULL)

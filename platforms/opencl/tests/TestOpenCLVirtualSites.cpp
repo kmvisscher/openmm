@@ -157,6 +157,7 @@ void testThreeParticleAverage() {
     for (int i = 0; i < 1000; i++) {
         State state = context.getState(State::Positions | State::Forces);
         const vector<Vec3>& pos = state.getPositions();
+		
         ASSERT_EQUAL_VEC(pos[0]*0.2+pos[1]*0.3+pos[2]*0.5, pos[3], 1e-5);
         ASSERT_EQUAL_VEC(Vec3(0.1+0.4*0.2, 0, 0), state.getForces()[0], 1e-5);
         ASSERT_EQUAL_VEC(Vec3(0.2+0.4*0.3, 0, 0), state.getForces()[1], 1e-5);
@@ -165,7 +166,6 @@ void testThreeParticleAverage() {
     }
 }
 
-//Modified by K.M.Visscher
 void testGroupParticleAverage() {
     System system;
 	
@@ -177,19 +177,19 @@ void testGroupParticleAverage() {
 	
 	std::vector< int > vsiteAtoms;
 	std::vector< double > vsiteWeights;
-	
+
 	//indices for virtual site
 	for ( int i=0; i < 15; ++i )
 	{
 		vsiteAtoms.push_back( i );
 		
 		//equal weights
-		vsiteWeights.push_back( 1.0 / 15 );
+		vsiteWeights.push_back( ( 1.0 + i ) / 120 );
 	}
 	
 	// New vsite definition
 	system.addParticle(0.0);
-	system.setVirtualSite(16, new ParticleGroupAverageSite(vsiteAtoms, vsiteWeights));
+	system.setVirtualSite(15, new ParticleGroupAverageSite(vsiteAtoms, vsiteWeights));
 	
 	//add a simple force
     CustomExternalForce* forceField = new CustomExternalForce("-a*x");
@@ -206,12 +206,12 @@ void testGroupParticleAverage() {
     LangevinIntegrator integrator(300.0, 0.1, 0.002);
     Context context(system, integrator, platform);
 	
-	vector<Vec3> positions(15);
+	vector<Vec3> positions(16);
 	for ( int i=0; i < 5; ++i )
 	{
-		positions[i*3]   = Vec3(i, 0, 0);
-		positions[i*3+1] = Vec3(0, i, 0);
-		positions[i*3+2] = Vec3(0, 0, i);
+		positions[i*3]   = Vec3(i*3, 0, 0);
+		positions[i*3+1] = Vec3(0, i*3+1, 0);
+		positions[i*3+2] = Vec3(0, 0, i*3+2);
 	}
 	
     context.setPositions(positions);
@@ -227,19 +227,23 @@ void testGroupParticleAverage() {
 		
 		for ( int subIndex=0; subIndex < 15; ++subIndex )
 		{
-			refPos += pos[subIndex];
+			const double localWeight = ( 1.0 + subIndex ) / 120.0;
+			refPos += ( pos[subIndex] * localWeight );	
 		}
-				
-        ASSERT_EQUAL_VEC( refPos, pos[3], 1e-5);
+		
+        ASSERT_EQUAL_VEC( refPos, pos[15], 1e-5);
 		
 		const double vsiteForce = 0.1 * 15 + 0.1;
-		const double globalWeight = 1.0 / 15;
 		
 		for ( int subIndex=0; subIndex < 15; ++subIndex )
 		{
-			ASSERT_EQUAL_VEC(Vec3((0.1 * 15 + 0.1)+vsiteForce*globalWeight, 0, 0), state.getForces()[subIndex], 1e-5);	
+			const double localWeight = ( 1.0 + subIndex ) / 120.0;
+			
+			Vec3 refFoce((0.1 * subIndex + 0.1)+vsiteForce*localWeight, 0, 0);
+			
+			ASSERT_EQUAL_VEC(refFoce, state.getForces()[subIndex], 1e-5);	
 		}
-        
+		
 		integrator.step(1);
     }
 }

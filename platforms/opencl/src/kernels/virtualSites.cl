@@ -34,7 +34,7 @@ __kernel void computeVirtualSites(__global real4* restrict posq,
         __global const int4* restrict avg3Atoms, __global const real4* restrict avg3Weights,
         __global const int4* restrict outOfPlaneAtoms, __global const real4* restrict outOfPlaneWeights,
         __global const int4* restrict localCoordsAtoms, __global const real* restrict localCoordsParams,
-		__global const int* restrict avgGroupAtoms, __global const real restrict avgGroupWeights ) {
+        __global const int* restrict avgGroupAtoms, __global const real* restrict avgGroupWeights ) {
 #ifndef USE_MIXED_PRECISION
         __global real4* posqCorrection = 0;
 #endif
@@ -107,34 +107,33 @@ __kernel void computeVirtualSites(__global real4* restrict posq,
         pos.z = origin.z + xdir.z*localPosition.x + ydir.z*localPosition.y + zdir.z*localPosition.z;
         storePos(posq, posqCorrection, atoms.x, pos);
     }
-	
-	//Modified by K.M.Visscher
-	// Avg group 
-	for (int index = get_global_id(0); index < NUM_GROUP_AVERAGE; index += get_global_size(0)) 
-	{
-		//keep global as the original memory is global
-		 __global const int * atoms   = &avgGroupAtoms[16*index];
-		 __global const real* weights = &avgGroupWeights[16*index];
-		
-	    //subIndex 0 is the vsite
-		mixed4 pos = loadPos(posq, posqCorrection, atoms[0]);
-		
-		mixed4 newPos = (mixed4) (0.0, 0.0, 0.0, 0.0);
-		
-		for ( int subIndex=1; subIndex < 16; subIndex++ )
-		{
-			mixed4 localPos = loadPos(posq, posqCorrection, atoms[subIndex]);
-			newPos+=( localPos.xyz * weights[subIndex] )
-		}
-		
-		//copy to pos
-		pos = newPos.xyz;
-		
-		//subIndex 0 is the vsite
-		storePos(posq, posqCorrection, atoms[0], pos);
-	}
-	
-	
+    
+    // Avg group 
+    for (int index = get_global_id(0); index < NUM_GROUP_AVERAGE; index += get_global_size(0)) 
+    {
+        //keep global as the original memory is global
+         __global const int * atoms   = &avgGroupAtoms[16*index];
+         __global const real* weights = &avgGroupWeights[16*index];
+        
+        //subIndex 0 is the vsite
+        mixed4 pos = loadPos(posq, posqCorrection, atoms[0]);
+        
+        mixed4 newPos = (mixed4) (0.0, 0.0, 0.0, 0.0);
+        
+        for ( int subIndex=1; subIndex < 16; subIndex++ )
+        {
+            mixed4 localPos = loadPos(posq, posqCorrection, atoms[subIndex]);
+            newPos.xyz += localPos.xyz * weights[subIndex];
+        }
+        
+        //copy to pos
+        pos.xyz = newPos.xyz;
+        
+        //subIndex 0 is the vsite
+        storePos(posq, posqCorrection, atoms[0], pos);
+    }
+    
+    
 }
 
 #ifdef HAS_OVERLAPPING_VSITES
@@ -204,7 +203,7 @@ __kernel void distributeForces(__global const real4* restrict posq, __global rea
         __global const int4* restrict avg3Atoms, __global const real4* restrict avg3Weights,
         __global const int4* restrict outOfPlaneAtoms, __global const real4* restrict outOfPlaneWeights,
         __global const int4* restrict localCoordsAtoms, __global const real* restrict localCoordsParams,
-		__global const int* restrict avgGroupAtoms, __global const real restrict avgGroupWeights ) {
+        __global const int* restrict avgGroupAtoms, __global const real* restrict avgGroupWeights ) {
 #ifndef USE_MIXED_PRECISION
         __global real4* posqCorrection = 0;
 #endif
@@ -337,21 +336,20 @@ __kernel void distributeForces(__global const real4* restrict posq, __global rea
         ADD_FORCE(atoms.z, f2);
         ADD_FORCE(atoms.w, f3);
     }
-	
-	//Modified by K.M.Visscher
-	// Avg group 
-	for (int index = get_global_id(0); index < NUM_GROUP_AVERAGE; index += get_global_size(0)) 
-	{
-		//keep global as the original memory is global
-		 __global const int * atoms   = &avgGroupAtoms[16*index];
-		 __global const real* weights = &avgGroupWeights[16*index];
-		
-		real4 f = force[atoms[0]];
-		
-		for ( int subIndex=1; subIndex < 16; subIndex++ )
-		{
-			ADD_FORCE(atoms[subIndex], f * weights[subIndex]);
-		}
-	}
-	
+    
+    // Avg group 
+    for (int index = get_global_id(0); index < NUM_GROUP_AVERAGE; index += get_global_size(0)) 
+    {
+        //keep global as the original memory is global
+         __global const int * atoms   = &avgGroupAtoms[16*index];
+         __global const real* weights = &avgGroupWeights[16*index];
+        
+        real4 f = force[atoms[0]];
+        
+        for ( int subIndex=1; subIndex < 16; subIndex++ )
+        {
+            ADD_FORCE(atoms[subIndex], f * weights[subIndex]);
+        }
+    }
+    
 }
