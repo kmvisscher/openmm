@@ -96,23 +96,16 @@ private:
     double weight1, weight2;
 };
 
-/**
- * This is a VirtualSite that computes the particle location as a weighted average
- * of three other particle's locations.  Assuming the weights add up to 1, this means
- * the virtual site is in the plane of the three particles.
- */
 class OPENMM_EXPORT ThreeParticleAverageSite : public VirtualSite {
 public:
     /**
-     * Create a new ThreeParticleAverageSite virtual site.  Normally the weights
+     * Create a new TwoParticleAverageSite virtual site.  Normally weight1 and weight2
      * should add up to 1, although this is not strictly required.
      * 
      * @param particle1    the index of the first particle
      * @param particle2    the index of the second particle
-     * @param particle3    the index of the third particle
      * @param weight1      the weight factor (between 0 and 1) for the first particle
      * @param weight2      the weight factor (between 0 and 1) for the second particle
-     * @param weight2      the weight factor (between 0 and 1) for the third particle
      */
     ThreeParticleAverageSite(int particle1, int particle2, int particle3, double weight1, double weight2, double weight3);
     /**
@@ -124,6 +117,32 @@ public:
     double getWeight(int particle) const;
 private:
     double weight1, weight2, weight3;
+};
+
+/**
+ * This is a VirtualSite that computes the particle location as a weighted average
+ * of 15 other particle's locations.  Assuming the weights add up to 1, this means
+ * the virtual site is in the plane of the three particles.
+ */
+//Modified by K.M.Visscher
+class OPENMM_EXPORT ParticleGroupAverageSite : public VirtualSite {
+public:
+    /**
+     * Create a new ThreeParticleAverageSite virtual site.  Normally the weights
+     * should add up to 1, although this is not strictly required.
+     * 
+     */
+    ParticleGroupAverageSite( const std::vector< int > & particles, const std::vector< double > & weights );
+    /**
+     * Get the weight factor used for a particle this virtual site depends on.
+     * 
+     * @param particle    the particle to get (between 0 and getNumParticles())
+     * @return the weight factor used for that particle
+     */
+    double getWeight(int particle) const;
+private:
+    
+	std::vector< double > mWeights;
 };
 
 /**

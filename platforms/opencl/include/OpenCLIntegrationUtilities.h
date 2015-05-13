@@ -146,6 +146,9 @@ private:
     OpenCLArray* vsite2AvgWeights;
     OpenCLArray* vsite3AvgAtoms;
     OpenCLArray* vsite3AvgWeights;
+	//Modified by K.M.Visscher
+    OpenCLArray* vsiteGroupAvgAtoms;
+    OpenCLArray* vsiteGroupAvgWeights;
     OpenCLArray* vsiteOutOfPlaneAtoms;
     OpenCLArray* vsiteOutOfPlaneWeights;
     OpenCLArray* vsiteLocalCoordsAtoms;

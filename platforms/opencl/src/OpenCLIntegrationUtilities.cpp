@@ -101,7 +101,7 @@ OpenCLIntegrationUtilities::OpenCLIntegrationUtilities(OpenCLContext& context, c
         random(NULL), randomSeed(NULL), randomPos(0), stepSize(NULL), ccmaAtoms(NULL), ccmaDistance(NULL),
         ccmaReducedMass(NULL), ccmaAtomConstraints(NULL), ccmaNumAtomConstraints(NULL), ccmaConstraintMatrixColumn(NULL),
         ccmaConstraintMatrixValue(NULL), ccmaDelta1(NULL), ccmaDelta2(NULL), ccmaConverged(NULL), ccmaConvergedHostBuffer(NULL),
-        vsite2AvgAtoms(NULL), vsite2AvgWeights(NULL), vsite3AvgAtoms(NULL), vsite3AvgWeights(NULL),
+        vsite2AvgAtoms(NULL), vsite2AvgWeights(NULL), vsite3AvgAtoms(NULL), vsite3AvgWeights(NULL),vsiteGroupAvgAtoms(NULL), vsiteGroupAvgWeights(NULL),
         vsiteOutOfPlaneAtoms(NULL), vsiteOutOfPlaneWeights(NULL), vsiteLocalCoordsAtoms(NULL), vsiteLocalCoordsParams(NULL),
         hasInitializedPosConstraintKernels(false), hasInitializedVelConstraintKernels(false), hasOverlappingVsites(false) {
     // Create workspace arrays.
@@ -493,10 +493,13 @@ OpenCLIntegrationUtilities::OpenCLIntegrationUtilities(OpenCLContext& context, c
     vector<mm_double2> vsite2AvgWeightVec;
     vector<mm_int4> vsite3AvgAtomVec;
     vector<mm_double4> vsite3AvgWeightVec;
+    vector<cl_int> vsiteGroupAvgAtomVec;
+    vector<cl_double> vsiteGroupAvgWeightVec;
     vector<mm_int4> vsiteOutOfPlaneAtomVec;
     vector<mm_double4> vsiteOutOfPlaneWeightVec;
     vector<mm_int4> vsiteLocalCoordsAtomVec;
     vector<cl_double> vsiteLocalCoordsParamVec;
+	
     for (int i = 0; i < numAtoms; i++) {
         if (system.isVirtualSite(i)) {
             if (dynamic_cast<const TwoParticleAverageSite*>(&system.getVirtualSite(i)) != NULL) {
@@ -513,6 +516,21 @@ OpenCLIntegrationUtilities::OpenCLIntegrationUtilities(OpenCLContext& context, c
                 vsite3AvgAtomVec.push_back(mm_int4(i, site.getParticle(0), site.getParticle(1), site.getParticle(2)));
                 vsite3AvgWeightVec.push_back(mm_double4(site.getWeight(0), site.getWeight(1), site.getWeight(2), 0.0));
             }
+			//Modified by K.M.Visscher
+			else if (dynamic_cast<const ParticleGroupAverageSite*>(&system.getVirtualSite(i)) != NULL) {
+				// 15 particle group average
+				const ParticleGroupAverageSite &site = dynamic_cast<const ParticleGroupAverageSite&>(system.getVirtualSite(i));
+				
+				//first one is own index!
+				vsiteGroupAvgAtomVec.push_back( i );
+				vsiteGroupAvgWeightVec.push_back( 0.0 );
+			
+				for ( int subIndex=0; subIndex < 15; ++subIndex )
+				{
+					vsiteGroupAvgAtomVec.push_back( site.getParticle(subIndex) );
+					vsiteGroupAvgWeightVec.push_back( site.getWeight(subIndex) );
+				}
+			}
             else if (dynamic_cast<const OutOfPlaneSite*>(&system.getVirtualSite(i)) != NULL) {
                 // An out of plane site.
                 
@@ -548,28 +566,51 @@ OpenCLIntegrationUtilities::OpenCLIntegrationUtilities(OpenCLContext& context, c
     int num3Avg = vsite3AvgAtomVec.size();
     int numOutOfPlane = vsiteOutOfPlaneAtomVec.size();
     int numLocalCoords = vsiteLocalCoordsAtomVec.size();
-    numVsites = num2Avg+num3Avg+numOutOfPlane+numLocalCoords;
+	
+	//Modified by K.M.Visscher
+	int numGroupAvg = vsiteGroupAvgAtomVec.size() / 16;
+	
+	//Modified by K.M.Visscher
+    numVsites = num2Avg+num3Avg+numOutOfPlane+numLocalCoords+numGroupAvg;
+	
     vsite2AvgAtoms = OpenCLArray::create<mm_int4>(context, max(1, num2Avg), "vsite2AvgAtoms");
     vsite3AvgAtoms = OpenCLArray::create<mm_int4>(context, max(1, num3Avg), "vsite3AvgAtoms");
+	
+	//Modified by K.M.Visscher
+	vsiteGroupAvgAtoms = OpenCLArray::create<cl_int>(context, max(1, 16*numGroupAvg), "vsiteGroupAvgAtoms");
     vsiteOutOfPlaneAtoms = OpenCLArray::create<mm_int4>(context, max(1, numOutOfPlane), "vsiteOutOfPlaneAtoms");
     vsiteLocalCoordsAtoms = OpenCLArray::create<mm_int4>(context, max(1, numLocalCoords), "vsiteLocalCoordinatesAtoms");
+	
     if (num2Avg > 0)
         vsite2AvgAtoms->upload(vsite2AvgAtomVec);
     if (num3Avg > 0)
         vsite3AvgAtoms->upload(vsite3AvgAtomVec);
+	
+	//Modified by K.M.Visscher
+    if (numGroupAvg > 0)
+        vsiteGroupAvgAtoms->upload(vsiteGroupAvgAtomVec);
+	
     if (numOutOfPlane > 0)
         vsiteOutOfPlaneAtoms->upload(vsiteOutOfPlaneAtomVec);
     if (numLocalCoords > 0)
         vsiteLocalCoordsAtoms->upload(vsiteLocalCoordsAtomVec);
+	
     if (context.getUseDoublePrecision()) {
         vsite2AvgWeights = OpenCLArray::create<mm_double2>(context, max(1, num2Avg), "vsite2AvgWeights");
         vsite3AvgWeights = OpenCLArray::create<mm_double4>(context, max(1, num3Avg), "vsite3AvgWeights");
+		
+		//Modified by K.M.Visscher
+		vsiteGroupAvgWeights = OpenCLArray::create<cl_double>(context, max(1, 16*numGroupAvg), "vsiteGroupAvgWeights");
         vsiteOutOfPlaneWeights = OpenCLArray::create<mm_double4>(context, max(1, numOutOfPlane), "vsiteOutOfPlaneWeights");
         vsiteLocalCoordsParams = OpenCLArray::create<cl_double>(context, max(1, 12*numLocalCoords), "vsiteLocalCoordinatesParams");
         if (num2Avg > 0)
             vsite2AvgWeights->upload(vsite2AvgWeightVec);
         if (num3Avg > 0)
             vsite3AvgWeights->upload(vsite3AvgWeightVec);
+		
+		//Modified by K.M.Visscher
+		if (numGroupAvg > 0)
+			vsiteGroupAvgWeights->upload(vsiteGroupAvgWeightVec);
         if (numOutOfPlane > 0)
             vsiteOutOfPlaneWeights->upload(vsiteOutOfPlaneWeightVec);
         if (numLocalCoords > 0)
@@ -578,6 +619,9 @@ OpenCLIntegrationUtilities::OpenCLIntegrationUtilities(OpenCLContext& context, c
     else {
         vsite2AvgWeights = OpenCLArray::create<mm_float2>(context, max(1, num2Avg), "vsite2AvgWeights");
         vsite3AvgWeights = OpenCLArray::create<mm_float4>(context, max(1, num3Avg), "vsite3AvgWeights");
+		
+		//Modified by K.M.Visscher
+		vsiteGroupAvgWeights = OpenCLArray::create<cl_float>(context, max(1, 16*numGroupAvg), "vsiteGroupAvgWeights");
         vsiteOutOfPlaneWeights = OpenCLArray::create<mm_float4>(context, max(1, numOutOfPlane), "vsiteOutOfPlaneWeights");
         vsiteLocalCoordsParams = OpenCLArray::create<float>(context, max(1, 12*numLocalCoords), "vsiteLocalCoordinatesParams");
         if (num2Avg > 0) {
@@ -592,6 +636,16 @@ OpenCLIntegrationUtilities::OpenCLIntegrationUtilities(OpenCLContext& context, c
                 floatWeights[i] = mm_float4((float) vsite3AvgWeightVec[i].x, (float) vsite3AvgWeightVec[i].y, (float) vsite3AvgWeightVec[i].z, 0.0f);
             vsite3AvgWeights->upload(floatWeights);
         }
+		
+		//Modified by K.M.Visscher
+		if (numGroupAvg > 0)
+		{
+			vector<cl_float> floatWeights(16*numGroupAvg);
+            for (int i = 0; i < vsiteGroupAvgWeightVec.size(); i++)
+                floatWeights[i] = cl_float((float) vsiteGroupAvgWeightVec[i] );
+            vsiteGroupAvgWeights->upload(floatWeights);
+		}
+		
         if (numOutOfPlane > 0) {
             vector<mm_float4> floatWeights(numOutOfPlane);
             for (int i = 0; i < numOutOfPlane; i++)
@@ -625,6 +679,10 @@ OpenCLIntegrationUtilities::OpenCLIntegrationUtilities(OpenCLContext& context, c
     map<string, string> defines;
     defines["NUM_2_AVERAGE"] = context.intToString(num2Avg);
     defines["NUM_3_AVERAGE"] = context.intToString(num3Avg);
+	
+	//Modified by K.M.Visscher
+	defines["NUM_GROUP_AVERAGE"] = context.intToString(numGroupAvg);
+	
     defines["NUM_OUT_OF_PLANE"] = context.intToString(numOutOfPlane);
     defines["NUM_LOCAL_COORDS"] = context.intToString(numLocalCoords);
     defines["NUM_ATOMS"] = context.intToString(numAtoms);
@@ -645,6 +703,11 @@ OpenCLIntegrationUtilities::OpenCLIntegrationUtilities(OpenCLContext& context, c
     vsitePositionKernel.setArg<cl::Buffer>(index++, vsiteOutOfPlaneWeights->getDeviceBuffer());
     vsitePositionKernel.setArg<cl::Buffer>(index++, vsiteLocalCoordsAtoms->getDeviceBuffer());
     vsitePositionKernel.setArg<cl::Buffer>(index++, vsiteLocalCoordsParams->getDeviceBuffer());
+	
+	//Modified by K.M.Visscher
+    vsitePositionKernel.setArg<cl::Buffer>(index++, vsiteGroupAvgAtoms->getDeviceBuffer());
+    vsitePositionKernel.setArg<cl::Buffer>(index++, vsiteGroupAvgWeights->getDeviceBuffer());
+	
     vsiteForceKernel = cl::Kernel(vsiteProgram, "distributeForces");
     index = 0;
     vsiteForceKernel.setArg<cl::Buffer>(index++, context.getPosq().getDeviceBuffer());
@@ -661,6 +724,11 @@ OpenCLIntegrationUtilities::OpenCLIntegrationUtilities(OpenCLContext& context, c
     vsiteForceKernel.setArg<cl::Buffer>(index++, vsiteOutOfPlaneWeights->getDeviceBuffer());
     vsiteForceKernel.setArg<cl::Buffer>(index++, vsiteLocalCoordsAtoms->getDeviceBuffer());
     vsiteForceKernel.setArg<cl::Buffer>(index++, vsiteLocalCoordsParams->getDeviceBuffer());
+	
+	//Modified by K.M.Visscher
+    vsiteForceKernel.setArg<cl::Buffer>(index++, vsiteGroupAvgAtoms->getDeviceBuffer());
+    vsiteForceKernel.setArg<cl::Buffer>(index++, vsiteGroupAvgWeights->getDeviceBuffer());
+	
     if (hasOverlappingVsites && context.getSupports64BitGlobalAtomics())
         vsiteAddForcesKernel = cl::Kernel(vsiteProgram, "addDistributedForces");
 }
@@ -720,6 +788,12 @@ OpenCLIntegrationUtilities::~OpenCLIntegrationUtilities() {
         delete vsiteLocalCoordsAtoms;
     if (vsiteLocalCoordsParams != NULL)
         delete vsiteLocalCoordsParams;
+	
+	//Modified by K.M.Visscher
+    if (vsiteGroupAvgAtoms != NULL)
+        delete vsiteGroupAvgAtoms;
+    if (vsiteGroupAvgWeights != NULL)
+        delete vsiteGroupAvgWeights;
 }
 
 void OpenCLIntegrationUtilities::applyConstraints(double tol) {

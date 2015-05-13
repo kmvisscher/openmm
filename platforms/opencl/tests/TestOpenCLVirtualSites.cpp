@@ -165,6 +165,85 @@ void testThreeParticleAverage() {
     }
 }
 
+//Modified by K.M.Visscher
+void testGroupParticleAverage() {
+    System system;
+	
+	//add a series of particles
+	for ( int i=0; i < 15; ++i )
+	{
+    	system.addParticle(1.0);
+	}
+	
+	std::vector< int > vsiteAtoms;
+	std::vector< double > vsiteWeights;
+	
+	//indices for virtual site
+	for ( int i=0; i < 15; ++i )
+	{
+		vsiteAtoms.push_back( i );
+		
+		//equal weights
+		vsiteWeights.push_back( 1.0 / 15 );
+	}
+	
+	// New vsite definition
+	system.addParticle(0.0);
+	system.setVirtualSite(16, new ParticleGroupAverageSite(vsiteAtoms, vsiteWeights));
+	
+	//add a simple force
+    CustomExternalForce* forceField = new CustomExternalForce("-a*x");
+    system.addForce(forceField);
+    forceField->addPerParticleParameter("a");
+	
+	vector<double> params(1);
+	for ( int i=0; i < 16; ++i )
+	{
+	    params[0] = 0.1 * i + 0.1;
+	    forceField->addParticle(i, params);
+	}
+	
+    LangevinIntegrator integrator(300.0, 0.1, 0.002);
+    Context context(system, integrator, platform);
+	
+	vector<Vec3> positions(15);
+	for ( int i=0; i < 5; ++i )
+	{
+		positions[i*3]   = Vec3(i, 0, 0);
+		positions[i*3+1] = Vec3(0, i, 0);
+		positions[i*3+2] = Vec3(0, 0, i);
+	}
+	
+    context.setPositions(positions);
+    context.applyConstraints(0.0001);
+	
+    for (int i = 0; i < 1000; i++) 
+	{
+        State state = context.getState(State::Positions | State::Forces);
+        const vector<Vec3>& pos = state.getPositions();
+		
+		//calculate the average position
+		Vec3 refPos(0.0,0.0,0.0);
+		
+		for ( int subIndex=0; subIndex < 15; ++subIndex )
+		{
+			refPos += pos[subIndex];
+		}
+				
+        ASSERT_EQUAL_VEC( refPos, pos[3], 1e-5);
+		
+		const double vsiteForce = 0.1 * 15 + 0.1;
+		const double globalWeight = 1.0 / 15;
+		
+		for ( int subIndex=0; subIndex < 15; ++subIndex )
+		{
+			ASSERT_EQUAL_VEC(Vec3((0.1 * 15 + 0.1)+vsiteForce*globalWeight, 0, 0), state.getForces()[subIndex], 1e-5);	
+		}
+        
+		integrator.step(1);
+    }
+}
+
 /**
  * Test an OutOfPlaneSite virtual site.
  */
@@ -572,6 +651,7 @@ int main(int argc, char* argv[]) {
         testMasslessParticle();
         testTwoParticleAverage();
         testThreeParticleAverage();
+		testGroupParticleAverage();
         testOutOfPlane();
         testLocalCoordinates();
         testConservationLaws();
