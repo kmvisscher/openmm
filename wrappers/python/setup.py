@@ -1,11 +1,6 @@
-#
-
 """
 setup.py: Used for building python wrappers for Simbios' OpenMM library.
 """
-__author__ = "Randall J. Radmer"
-__version__ = "1.0"
-
 import ast
 import re
 import os
@@ -18,6 +13,8 @@ MINOR_VERSION_NUM='@OPENMM_MINOR_VERSION@'
 BUILD_INFO='@OPENMM_BUILD_VERSION@'
 IS_RELEASED = False
 
+__author__ = "Peter Eastman"
+__version__ = "%s.%s" % (MAJOR_VERSION_NUM, MINOR_VERSION_NUM)
 
 def reportError(message):
     sys.stdout.write("ERROR: ")
@@ -85,7 +82,7 @@ version = '%(version)s'
 full_version = '%(full_version)s'
 git_revision = '%(git_revision)s'
 release = %(isrelease)s
-openmm_library_path = '%(path)s'
+openmm_library_path = r'%(path)s'
 
 if not release:
     version = full_version
@@ -159,11 +156,11 @@ def buildKeywordDictionary(major_version_num=MAJOR_VERSION_NUM,
     setupKeywords["description"]       = \
     "Python wrapper for OpenMM (a C++ MD package)"
     setupKeywords["long_description"]  = \
-    """OpenMM is a library which provides tools for modern molecular
-    modeling simulation. As a library it can be hooked into any code,
-    allowing that code to do molecular modeling with minimal extra
-    coding (https://simtk.org/home/openmm).  This Python package
-    gives access to the OpenMM API.
+    """OpenMM is a toolkit for molecular simulation. It can be used either as a
+    stand-alone application for running simulations, or as a library you call
+    from your own code. It provides a combination of extreme flexibility
+    (through custom forces and integrators), openness, and high performance
+    (especially on recent GPUs) that make it truly unique among simulation codes.
     """
 
     define_macros = [('MAJOR_VERSION', major_version_num),
@@ -182,7 +179,7 @@ def buildKeywordDictionary(major_version_num=MAJOR_VERSION_NUM,
             for ii in range(len(libraries)):
                 libraries[ii]="%s_d" % libraries[ii]
                 sys.stdout.write("%s\n" % libraries[ii])
-            
+
     openmm_include_path = os.getenv('OPENMM_INCLUDE_PATH')
     if not openmm_include_path:
         reportError("Set OPENMM_INCLUDE_PATH to point to the include directory for OpenMM")
@@ -199,8 +196,8 @@ def buildKeywordDictionary(major_version_num=MAJOR_VERSION_NUM,
         extra_compile_args.append('/EHsc')
     else:
         if platform.system() == 'Darwin':
-            extra_compile_args += ['-stdlib=libc++', '-mmacosx-version-min=10.7']                                                                                                                                       
-            extra_link_args += ['-stdlib=libc++', '-mmacosx-version-min=10.7', '-Wl', '-rpath', openmm_lib_path]                                                                                                          
+            extra_compile_args += ['-stdlib=libc++', '-mmacosx-version-min=10.7']
+            extra_link_args += ['-stdlib=libc++', '-mmacosx-version-min=10.7', '-Wl', '-rpath', openmm_lib_path]
 
     library_dirs=[openmm_lib_path]
     include_dirs=openmm_include_path.split(';')
@@ -223,11 +220,11 @@ def buildKeywordDictionary(major_version_num=MAJOR_VERSION_NUM,
     for key in sorted(iter(setupKeywords)):
          value         = setupKeywords[key]
          outputString += key.rjust(firstTab) + str( value ).rjust(secondTab) + "\n"
-    
+
     sys.stdout.write("%s" % outputString)
 
     return setupKeywords
-    
+
 
 def main():
     if sys.version_info < (2, 6):

@@ -3,12 +3,16 @@ from validateConstraints import *
 from simtk.openmm.app import *
 from simtk.openmm import *
 from simtk.unit import *
+from simtk.openmm.app.gromacstopfile import _defaultGromacsIncludeDir
 import simtk.openmm.app.element as elem
 
+GROMACS_INCLUDE = _defaultGromacsIncludeDir()
+
+@unittest.skipIf(not os.path.exists(GROMACS_INCLUDE), 'GROMACS is not installed')
 class TestGromacsTopFile(unittest.TestCase):
 
     """Test the GromacsTopFile.createSystem() method."""
- 
+
     def setUp(self):
         """Set up the tests by loading the input files."""
 
@@ -20,23 +24,37 @@ class TestGromacsTopFile(unittest.TestCase):
     def test_NonbondedMethod(self):
         """Test all five options for the nonbondedMethod parameter."""
 
-        methodMap = {NoCutoff:NonbondedForce.NoCutoff, 
-                     CutoffNonPeriodic:NonbondedForce.CutoffNonPeriodic, 
-                     CutoffPeriodic:NonbondedForce.CutoffPeriodic, 
+        methodMap = {NoCutoff:NonbondedForce.NoCutoff,
+                     CutoffNonPeriodic:NonbondedForce.CutoffNonPeriodic,
+                     CutoffPeriodic:NonbondedForce.CutoffPeriodic,
                      Ewald:NonbondedForce.Ewald, PME: NonbondedForce.PME}
         for method in methodMap:
             system = self.top1.createSystem(nonbondedMethod=method)
             forces = system.getForces()
-            self.assertTrue(any(isinstance(f, NonbondedForce) and 
-                                f.getNonbondedMethod()==methodMap[method] 
+            self.assertTrue(any(isinstance(f, NonbondedForce) and
+                                f.getNonbondedMethod()==methodMap[method]
                                 for f in forces))
+
+    def test_ff99SBILDN(self):
+        """ Test Gromacs topology #define replacement as used in ff99SB-ILDN """
+        top = GromacsTopFile('systems/aidilnaaaaa.top')
+        gro = GromacsGroFile('systems/aidilnaaaaa.gro')
+        system = top.createSystem()
+        for force in system.getForces():
+            if isinstance(force, PeriodicTorsionForce):
+                force.setForceGroup(1)
+        context = Context(system, VerletIntegrator(1*femtosecond),
+                          Platform.getPlatformByName('Reference'))
+        context.setPositions(gro.positions)
+        ene = context.getState(getEnergy=True, groups=2**1).getPotentialEnergy()
+        self.assertAlmostEqual(ene.value_in_unit(kilojoules_per_mole), 341.6905133582857)
 
     def test_Cutoff(self):
         """Test to make sure the nonbondedCutoff parameter is passed correctly."""
 
         for method in [CutoffNonPeriodic, CutoffPeriodic, Ewald, PME]:
-            system = self.top1.createSystem(nonbondedMethod=method, 
-                                               nonbondedCutoff=2*nanometer, 
+            system = self.top1.createSystem(nonbondedMethod=method,
+                                               nonbondedCutoff=2*nanometer,
                                                constraints=HBonds)
             cutoff_distance = 0.0*nanometer
             cutoff_check = 2.0*nanometer
@@ -49,8 +67,8 @@ class TestGromacsTopFile(unittest.TestCase):
         """Test to make sure the ewaldErrorTolerance parameter is passed correctly."""
 
         for method in [Ewald, PME]:
-            system = self.top1.createSystem(nonbondedMethod=method, 
-                                               ewaldErrorTolerance=1e-6, 
+            system = self.top1.createSystem(nonbondedMethod=method,
+                                               ewaldErrorTolerance=1e-6,
                                                constraints=HBonds)
             tolerance = 0
             tolerance_check = 1e-6
@@ -72,9 +90,9 @@ class TestGromacsTopFile(unittest.TestCase):
         topology = self.top1.topology
         for constraints_value in [None, HBonds, AllBonds, HAngles]:
             for rigidWater_value in [True, False]:
-                system = self.top1.createSystem(constraints=constraints_value, 
+                system = self.top1.createSystem(constraints=constraints_value,
                                                    rigidWater=rigidWater_value)
-                validateConstraints(self, topology, system, 
+                validateConstraints(self, topology, system,
                                     constraints_value, rigidWater_value)
 
     def test_ImplicitSolvent(self):
@@ -88,8 +106,8 @@ class TestGromacsTopFile(unittest.TestCase):
         """Test that solventDielectric and soluteDielectric are passed correctly.
 
         """
-        system = self.top2.createSystem(implicitSolvent=OBC2, 
-                                           solventDielectric=50.0, 
+        system = self.top2.createSystem(implicitSolvent=OBC2,
+                                           solventDielectric=50.0,
                                            soluteDielectric = 0.9)
         found_matching_solvent_dielectric=False
         found_matching_solute_dielectric=False
@@ -101,12 +119,12 @@ class TestGromacsTopFile(unittest.TestCase):
                     found_matching_solute_dielectric = True
             if isinstance(force, NonbondedForce):
                 self.assertEqual(force.getReactionFieldDielectric(), 1.0)
-        self.assertTrue(found_matching_solvent_dielectric and 
+        self.assertTrue(found_matching_solvent_dielectric and
                         found_matching_solute_dielectric)
 
     def test_HydrogenMass(self):
         """Test that altering the mass of hydrogens works correctly."""
-        
+
         topology = self.top1.topology
         hydrogenMass = 4*amu
         system1 = self.top1.createSystem()

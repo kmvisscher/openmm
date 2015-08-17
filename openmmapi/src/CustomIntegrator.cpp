@@ -94,6 +94,8 @@ double CustomIntegrator::computeKineticEnergy() {
 }
 
 void CustomIntegrator::step(int steps) {
+    if (context == NULL)
+        throw OpenMMException("This Integrator is not bound to a context!");  
     globalsAreCurrent = false;
     for (int i = 0; i < steps; ++i) {
         kernel.getAs<IntegrateCustomStepKernel>().execute(*context, *this, forcesAreValid);
@@ -240,6 +242,27 @@ int CustomIntegrator::addUpdateContextState() {
     if (owner != NULL)
         throw OpenMMException("The integrator cannot be modified after it is bound to a context");
     computations.push_back(ComputationInfo(UpdateContextState, "", ""));
+    return computations.size()-1;
+}
+
+int CustomIntegrator::beginIfBlock(const string& expression) {
+    if (owner != NULL)
+        throw OpenMMException("The integrator cannot be modified after it is bound to a context");
+    computations.push_back(ComputationInfo(BeginIfBlock, "", expression));
+    return computations.size()-1;
+}
+
+int CustomIntegrator::beginWhileBlock(const string& expression) {
+    if (owner != NULL)
+        throw OpenMMException("The integrator cannot be modified after it is bound to a context");
+    computations.push_back(ComputationInfo(BeginWhileBlock, "", expression));
+    return computations.size()-1;
+}
+
+int CustomIntegrator::endBlock() {
+    if (owner != NULL)
+        throw OpenMMException("The integrator cannot be modified after it is bound to a context");
+    computations.push_back(ComputationInfo(EndBlock, "", ""));
     return computations.size()-1;
 }
 

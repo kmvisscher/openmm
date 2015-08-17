@@ -59,6 +59,14 @@ class Topology(object):
         self._bonds = []
         self._periodicBoxVectors = None
 
+    def __repr__(self):
+        nchains = len(self._chains)
+        nres = sum(1 for r in self.residues())
+        natom = sum(1 for a in self.atoms())
+        nbond = len(self._bonds)
+        return '<%s; %d chains, %d residues, %d atoms, %d bonds>' % (
+                type(self).__name__, nchains, nres, natom, nbond)
+
     def addChain(self, id=None):
         """Create a new Chain and add it to the Topology.
 
@@ -291,6 +299,12 @@ class Chain(object):
             for atom in residue._atoms:
                 yield atom
 
+    def __len__(self):
+        return len(self._residues)
+
+    def __repr__(self):
+        return "<Chain %d>" % self.index
+
 class Residue(object):
     """A Residue object represents a residue within a Topology."""
     def __init__(self, name, index, chain, id):
@@ -309,6 +323,12 @@ class Residue(object):
         """Iterate over all Atoms in the Residue."""
         return iter(self._atoms)
 
+    def __len__(self):
+        return len(self._atoms)
+
+    def __repr__(self):
+        return "<Residue %d (%s) of chain %d>" % (self.index, self.name, self.chain.index)
+
 class Atom(object):
     """An Atom object represents a residue within a Topology."""
 
@@ -325,3 +345,5 @@ class Atom(object):
         ## A user defined identifier for this Atom
         self.id = id
 
+    def __repr__(self):
+        return "<Atom %d (%s) of chain %d residue %d (%s)>" % (self.index, self.name, self.residue.chain.index, self.residue.index, self.residue.name)
