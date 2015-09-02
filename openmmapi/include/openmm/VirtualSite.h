@@ -127,6 +127,32 @@ private:
 };
 
 /**
+ * This is a VirtualSite that computes the particle location as a weighted average
+ * of 15 other particle's locations.  Assuming the weights add up to 1, this means
+ * the virtual site is in the plane of the three particles.
+ */
+class OPENMM_EXPORT ParticleGroupAverageSite : public VirtualSite {
+public:
+    /**
+     * Create a new ThreeParticleAverageSite virtual site.  Normally the weights
+     * should add up to 1, although this is not strictly required.
+     * 
+     */
+    ParticleGroupAverageSite( const std::vector< int > & particles, const std::vector< double > & weights );
+    /**
+     * Get the weight factor used for a particle this virtual site depends on.
+     * 
+     * @param particle    the particle to get (between 0 and getNumParticles())
+     * @return the weight factor used for that particle
+     */
+    double getWeight(int particle) const;
+private:
+    
+    std::vector< double > mWeights;
+};
+
+
+/**
  * This is a VirtualSite that computes the particle location based on three other
  * particles' locations.  If r<sub>1</sub> is the location of particle 1,
  * r<sub>12</sub> is the vector from particle 1 to particle 2, and
