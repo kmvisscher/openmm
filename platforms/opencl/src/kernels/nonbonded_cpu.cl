@@ -19,7 +19,7 @@ __kernel void computeNonbonded(
 #else
         __global real4* restrict forceBuffers,
 #endif
-        __global real* restrict energyBuffer, __global const real4* restrict posq, __global const unsigned int* restrict exclusions,
+        __global mixed* restrict energyBuffer, __global const real4* restrict posq, __global const unsigned int* restrict exclusions,
         __global const ushort2* restrict exclusionTiles, unsigned int startTileIndex, unsigned int numTileIndices
 #ifdef USE_CUTOFF
         , __global const int* restrict tiles, __global const unsigned int* restrict interactionCount, real4 periodicBoxSize, real4 invPeriodicBoxSize,
@@ -27,7 +27,7 @@ __kernel void computeNonbonded(
         __global const real4* restrict blockSize, __global const int* restrict interactingAtoms
 #endif
         PARAMETER_ARGUMENTS) {
-    real energy = 0;
+    mixed energy = 0;
     __local AtomData localData[TILE_SIZE];
 
     // First loop: process tiles that contain exclusions.
@@ -237,9 +237,9 @@ __kernel void computeNonbonded(
         if (numTiles <= maxTiles) {
             x = tiles[pos];
             real4 blockSizeX = blockSize[x];
-            singlePeriodicCopy = (0.5f*periodicBoxSize.x-blockSizeX.x >= CUTOFF &&
-                                  0.5f*periodicBoxSize.y-blockSizeX.y >= CUTOFF &&
-                                  0.5f*periodicBoxSize.z-blockSizeX.z >= CUTOFF);
+            singlePeriodicCopy = (0.5f*periodicBoxSize.x-blockSizeX.x >= MAX_CUTOFF &&
+                                  0.5f*periodicBoxSize.y-blockSizeX.y >= MAX_CUTOFF &&
+                                  0.5f*periodicBoxSize.z-blockSizeX.z >= MAX_CUTOFF);
         }
         else
 #endif

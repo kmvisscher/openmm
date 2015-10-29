@@ -6,7 +6,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2012-2014 Stanford University and the Authors.      *
+ * Portions copyright (c) 2012-2015 Stanford University and the Authors.      *
  * Authors: Peter Eastman                                                     *
  * Contributors:                                                              *
  *                                                                            *
@@ -29,28 +29,8 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE.                                     *
  * -------------------------------------------------------------------------- */
 
-/**
- * This tests the OpenCL implementation of virtual sites.
- */
-
-#include "openmm/internal/AssertionUtilities.h"
-#include "openmm/Context.h"
-#include "OpenCLPlatform.h"
-#include "openmm/CustomBondForce.h"
-#include "openmm/CustomExternalForce.h"
-#include "openmm/LangevinIntegrator.h"
-#include "openmm/NonbondedForce.h"
-#include "openmm/System.h"
-#include "openmm/VerletIntegrator.h"
-#include "openmm/VirtualSite.h"
-#include "sfmt/SFMT.h"
-#include <iostream>
-#include <vector>
-
-using namespace OpenMM;
-using namespace std;
-
-static OpenCLPlatform platform;
+#include "OpenCLTests.h"
+#include "TestVirtualSites.h"
 
 /**
  * Check that massless particles are handled correctly.
@@ -607,65 +587,6 @@ void testReordering() {
     }
 }
 
-/**
- * Test a System where multiple virtual sites are all calculated from the same particles.
- */
-void testOverlappingSites() {
-    System system;
-    system.addParticle(1.0);
-    system.addParticle(1.0);
-    system.addParticle(1.0);
-    NonbondedForce* nonbonded = new NonbondedForce();
-    system.addForce(nonbonded);
-    nonbonded->addParticle(1.0, 0.0, 0.0);
-    nonbonded->addParticle(-0.5, 0.0, 0.0);
-    nonbonded->addParticle(-0.5, 0.0, 0.0);
-    vector<Vec3> positions;
-    positions.push_back(Vec3(0, 0, 0));
-    positions.push_back(Vec3(10, 0, 0));
-    positions.push_back(Vec3(0, 10, 0));
-    for (int i = 0; i < 20; i++) {
-        system.addParticle(0.0);
-        double u = 0.1*((i+1)%4);
-        double v = 0.05*i;
-        system.setVirtualSite(3+i, new ThreeParticleAverageSite(0, 1, 2, u, v, 1-u-v));
-        nonbonded->addParticle(i%2 == 0 ? -1.0 : 1.0, 0.0, 0.0);
-        positions.push_back(Vec3());
-    }
-    VerletIntegrator i1(0.002);
-    VerletIntegrator i2(0.002);
-    Context c1(system, i1, Platform::getPlatformByName("Reference"));
-    Context c2(system, i2, platform);
-    c1.setPositions(positions);
-    c2.setPositions(positions);
-    c1.applyConstraints(0.0001);
-    c2.applyConstraints(0.0001);
-    State s1 = c1.getState(State::Positions | State::Forces);
-    State s2 = c2.getState(State::Positions | State::Forces);
-    for (int i = 0; i < system.getNumParticles(); i++)
-        ASSERT_EQUAL_VEC(s1.getPositions()[i], s2.getPositions()[i], 1e-5);
-    for (int i = 0; i < 3; i++)
-        ASSERT_EQUAL_VEC(s1.getForces()[i], s2.getForces()[i], 1e-5);
-}
-
-int main(int argc, char* argv[]) {
-    try {
-        if (argc > 1)
-            platform.setPropertyDefaultValue("OpenCLPrecision", string(argv[1]));
-        testMasslessParticle();
-        testTwoParticleAverage();
-        testThreeParticleAverage();
-		testGroupParticleAverage();
-        testOutOfPlane();
-        testLocalCoordinates();
-        testConservationLaws();
-        testReordering();
-        testOverlappingSites();
-    }
-    catch(const exception& e) {
-        cout << "exception: " << e.what() << endl;
-        return 1;
-    }
-    cout << "Done" << endl;
-    return 0;
+void runPlatformTests() {
+    testReordering();
 }
