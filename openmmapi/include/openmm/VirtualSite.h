@@ -97,15 +97,10 @@ private:
     double weight1, weight2;
 };
 
-/**
- * This is a VirtualSite that computes the particle location as a weighted average
- * of three other particle's locations.  Assuming the weights add up to 1, this means
- * the virtual site is in the plane of the three particles.
- */
 class OPENMM_EXPORT ThreeParticleAverageSite : public VirtualSite {
 public:
     /**
-     * Create a new ThreeParticleAverageSite virtual site.  Normally the weights
+     * Create a new ThreeParticleAverageSite virtual site.  Normally weight1,weight2 and weight3
      * should add up to 1, although this is not strictly required.
      * 
      * @param particle1    the index of the first particle

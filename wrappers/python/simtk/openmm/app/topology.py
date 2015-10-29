@@ -28,6 +28,7 @@ DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
 OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
 USE OR OTHER DEALINGS IN THE SOFTWARE.
 """
+from __future__ import absolute_import
 __author__ = "Peter Eastman"
 __version__ = "1.0"
 
@@ -61,11 +62,29 @@ class Topology(object):
 
     def __repr__(self):
         nchains = len(self._chains)
-        nres = sum(1 for r in self.residues())
-        natom = sum(1 for a in self.atoms())
+        nres = self._numResidues
+        natom = self._numAtoms
         nbond = len(self._bonds)
         return '<%s; %d chains, %d residues, %d atoms, %d bonds>' % (
                 type(self).__name__, nchains, nres, natom, nbond)
+
+    def getNumAtoms(self):
+        """Return the number of atoms in the Topology.
+        """
+        natom = self._numAtoms
+        return natom
+
+    def getNumResidues(self):
+        """Return the number of residues in the Topology.
+        """
+        nres = self._numResidues
+        return nres
+
+    def getNumChains(self):
+        """Return the number of chains in the Topology.
+        """
+        nchain = len(self._chains)
+        return nchain
 
     def addChain(self, id=None):
         """Create a new Chain and add it to the Topology.
@@ -302,6 +321,9 @@ class Chain(object):
     def __len__(self):
         return len(self._residues)
 
+    def __repr__(self):
+        return "<Chain %d>" % self.index
+
 class Residue(object):
     """A Residue object represents a residue within a Topology."""
     def __init__(self, name, index, chain, id):
@@ -323,6 +345,9 @@ class Residue(object):
     def __len__(self):
         return len(self._atoms)
 
+    def __repr__(self):
+        return "<Residue %d (%s) of chain %d>" % (self.index, self.name, self.chain.index)
+
 class Atom(object):
     """An Atom object represents a residue within a Topology."""
 
@@ -339,3 +364,5 @@ class Atom(object):
         ## A user defined identifier for this Atom
         self.id = id
 
+    def __repr__(self):
+        return "<Atom %d (%s) of chain %d residue %d (%s)>" % (self.index, self.name, self.residue.chain.index, self.residue.index, self.residue.name)

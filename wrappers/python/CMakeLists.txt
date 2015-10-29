@@ -69,6 +69,7 @@ foreach(SUBDIR ${SUBDIRS})
         "${CMAKE_CURRENT_SOURCE_DIR}/${SUBDIR}/*.str"
         "${CMAKE_CURRENT_SOURCE_DIR}/${SUBDIR}/*psf"
         "${CMAKE_CURRENT_SOURCE_DIR}/${SUBDIR}/charmm22.*"
+        "${CMAKE_CURRENT_SOURCE_DIR}/${SUBDIR}/par*.inp"
     )
     foreach(file ${STAGING_INPUT_FILES1})
         set(STAGING_INPUT_FILES ${STAGING_INPUT_FILES} "${file}")
@@ -163,7 +164,6 @@ set(SWIG_INPUT_FILES2
     "${SWIG_OPENMM_DIR}/swig_lib/python/header.i"
     "${SWIG_OPENMM_DIR}/swig_lib/python/pythoncode.i"
     "${SWIG_OPENMM_DIR}/swig_lib/python/typemaps.i"
-    "${SWIG_OPENMM_DIR}/swig_lib/python/pythonprepend_all.i"
 )
 
 # Create input files for swig
@@ -176,6 +176,7 @@ add_custom_command(
         -o OpenMMSwigHeaders.i
         -a swig_lib/python/pythonprepend.i
         -z swig_lib/python/pythonappend.i
+        -v "${SWIG_VERSION}"
     WORKING_DIRECTORY "${SWIG_OPENMM_DIR}"
     DEPENDS
         "${SWIG_OPENMM_DIR}/swigInputConfig.py"

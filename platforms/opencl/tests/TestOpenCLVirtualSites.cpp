@@ -6,7 +6,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2012-2014 Stanford University and the Authors.      *
+ * Portions copyright (c) 2012-2015 Stanford University and the Authors.      *
  * Authors: Peter Eastman                                                     *
  * Contributors:                                                              *
  *                                                                            *
@@ -29,28 +29,8 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE.                                     *
  * -------------------------------------------------------------------------- */
 
-/**
- * This tests the OpenCL implementation of virtual sites.
- */
-
-#include "openmm/internal/AssertionUtilities.h"
-#include "openmm/Context.h"
-#include "OpenCLPlatform.h"
-#include "openmm/CustomBondForce.h"
-#include "openmm/CustomExternalForce.h"
-#include "openmm/LangevinIntegrator.h"
-#include "openmm/NonbondedForce.h"
-#include "openmm/System.h"
-#include "openmm/VerletIntegrator.h"
-#include "openmm/VirtualSite.h"
-#include "sfmt/SFMT.h"
-#include <iostream>
-#include <vector>
-
-using namespace OpenMM;
-using namespace std;
-
-static OpenCLPlatform platform;
+#include "OpenCLTests.h"
+#include "TestVirtualSites.h"
 
 /**
  * Check that massless particles are handled correctly.
@@ -157,6 +137,7 @@ void testThreeParticleAverage() {
     for (int i = 0; i < 1000; i++) {
         State state = context.getState(State::Positions | State::Forces);
         const vector<Vec3>& pos = state.getPositions();
+		
         ASSERT_EQUAL_VEC(pos[0]*0.2+pos[1]*0.3+pos[2]*0.5, pos[3], 1e-5);
         ASSERT_EQUAL_VEC(Vec3(0.1+0.4*0.2, 0, 0), state.getForces()[0], 1e-5);
         ASSERT_EQUAL_VEC(Vec3(0.2+0.4*0.3, 0, 0), state.getForces()[1], 1e-5);
