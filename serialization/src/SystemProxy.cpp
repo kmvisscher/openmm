@@ -79,6 +79,13 @@ void SystemProxy::serialize(const void* object, SerializationNode& node) const {
                         setDoubleProperty("wy1", wy[0]).setDoubleProperty("wy2", wy[1]).setDoubleProperty("wy3", wy[2]).
                         setDoubleProperty("pos1", p[0]).setDoubleProperty("pos2", p[1]).setDoubleProperty("pos3", p[2]);
             }
+	    else if (typeid(system.getVirtualSite(i)) == typeid(ParticleGroupAverageSite)) {
+                const ParticleGroupAverageSite& site = dynamic_cast<const ParticleGroupAverageSite&>(system.getVirtualSite(i));
+                particle.createChildNode("ParticleGroupAverageSite").setIntProperty("p1", site.getParticle(0)).setIntProperty("p2", site.getParticle(1)).setIntProperty("p3", site.getParticle(2)).setIntProperty("p4", site.getParticle(3)).setIntProperty("p5", site.getParticle(4)).setIntProperty("p6", site.getParticle(5)).setIntProperty("p7", site.getParticle(6)).setIntProperty("p8", site.getParticle(7)).setIntProperty("p9", site.getParticle(8)).setIntProperty("p10", site.getParticle(9)).setIntProperty("p11", site.getParticle(10)).setIntProperty("p12", site.getParticle(11)).setIntProperty("p13", site.getParticle(12)).setIntProperty("p14", site.getParticle(13)).setIntProperty("p15", site.getParticle(14)).setDoubleProperty("w1", site.getWeight(0)).setDoubleProperty("w2", site.getWeight(1)).setDoubleProperty("w3", site.getWeight(2)).setDoubleProperty("w4", site.getWeight(3)).setDoubleProperty("w5", site.getWeight(4)).setDoubleProperty("w6", site.getWeight(5)).setDoubleProperty("w7", site.getWeight(6)).setDoubleProperty("w8", site.getWeight(7)).setDoubleProperty("w9", site.getWeight(8)).setDoubleProperty("w10", site.getWeight(9)).setDoubleProperty("w11", site.getWeight(10)).setDoubleProperty("w12", site.getWeight(11)).setDoubleProperty("w13", site.getWeight(12)).setDoubleProperty("w14", site.getWeight(13)).setDoubleProperty("w15", site.getWeight(14));
+            }
+	    {	
+
+	    }
         }
     }
     SerializationNode& constraints = node.createChildNode("Constraints");
@@ -124,6 +131,43 @@ void* SystemProxy::deserialize(const SerializationNode& node) const {
                     Vec3 p(vsite.getDoubleProperty("pos1"), vsite.getDoubleProperty("pos2"), vsite.getDoubleProperty("pos3"));
                     system->setVirtualSite(i, new LocalCoordinatesSite(vsite.getIntProperty("p1"), vsite.getIntProperty("p2"), vsite.getIntProperty("p3"), wo, wx, wy, p));
                 }
+	        else if (vsite.getName() == "ParticleGroupAverageSite")
+		{
+		    std::vector< int > indices;
+		    std::vector< double > weights;
+		
+		    indices.push_back(vsite.getIntProperty("p1"));
+                    indices.push_back(vsite.getIntProperty("p2"));
+                    indices.push_back(vsite.getIntProperty("p3"));
+                    indices.push_back(vsite.getIntProperty("p4"));
+                    indices.push_back(vsite.getIntProperty("p5"));
+                    indices.push_back(vsite.getIntProperty("p6"));
+                    indices.push_back(vsite.getIntProperty("p7"));
+                    indices.push_back(vsite.getIntProperty("p8"));
+                    indices.push_back(vsite.getIntProperty("p9"));
+                    indices.push_back(vsite.getIntProperty("p10"));
+                    indices.push_back(vsite.getIntProperty("p11"));
+                    indices.push_back(vsite.getIntProperty("p12"));
+                    indices.push_back(vsite.getIntProperty("p13"));
+                    indices.push_back(vsite.getIntProperty("p14"));
+                    indices.push_back(vsite.getIntProperty("p15"));
+                    weights.push_back(vsite.getDoubleProperty("w1"));
+                    weights.push_back(vsite.getDoubleProperty("w2"));
+                    weights.push_back(vsite.getDoubleProperty("w3"));
+                    weights.push_back(vsite.getDoubleProperty("w4"));
+                    weights.push_back(vsite.getDoubleProperty("w5"));
+                    weights.push_back(vsite.getDoubleProperty("w6"));
+                    weights.push_back(vsite.getDoubleProperty("w7"));
+                    weights.push_back(vsite.getDoubleProperty("w8"));
+                    weights.push_back(vsite.getDoubleProperty("w9"));
+                    weights.push_back(vsite.getDoubleProperty("w10"));
+                    weights.push_back(vsite.getDoubleProperty("w11"));
+                    weights.push_back(vsite.getDoubleProperty("w12"));
+                    weights.push_back(vsite.getDoubleProperty("w13"));
+                    weights.push_back(vsite.getDoubleProperty("w14"));
+                    weights.push_back(vsite.getDoubleProperty("w15"));
+
+	        }
             }
         }
         const SerializationNode& constraints = node.getChildNode("Constraints");

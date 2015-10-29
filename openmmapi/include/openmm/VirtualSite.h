@@ -34,6 +34,7 @@
 
 #include <openmm/Vec3.h>
 #include "internal/windowsExport.h"
+#include "openmm/OpenMMException.h"
 #include <vector>
 
 namespace OpenMM {
@@ -138,14 +139,32 @@ public:
      * should add up to 1, although this is not strictly required.
      * 
      */
-    ParticleGroupAverageSite( const std::vector< int > & particles, const std::vector< double > & weights );
+     inline ParticleGroupAverageSite(const std::vector< int > & particles, const std::vector< double > & weights) :
+        mWeights(weights)
+    {
+        if ( particles.size() != 15 || weights.size() != 15 )
+        {
+            throw OpenMMException("ParticleGroupAverageSite requires indices and weights for 15 particles");
+        }
+
+        setParticles(particles);
+    }
+
+    inline double getWeight(int particle) const {
+        if (particle < mWeights.size())
+            return mWeights[particle];
+        throw OpenMMException("Illegal index for particle");
+    }
+
+
+    //ParticleGroupAverageSite( const std::vector< int > & particles, const std::vector< double > & weights );
     /**
      * Get the weight factor used for a particle this virtual site depends on.
      * 
      * @param particle    the particle to get (between 0 and getNumParticles())
      * @return the weight factor used for that particle
      */
-    double getWeight(int particle) const;
+    //double getWeight(int particle) const;
 private:
     
     std::vector< double > mWeights;

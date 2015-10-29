@@ -84,6 +84,7 @@ double ThreeParticleAverageSite::getWeight(int particle) const {
     throw OpenMMException("Illegal index for particle");
 }
 
+/*
 ParticleGroupAverageSite::ParticleGroupAverageSite(const std::vector< int > & particles, const std::vector< double > & weights) :
         mWeights(weights)
 {
@@ -100,7 +101,7 @@ double ParticleGroupAverageSite::getWeight(int particle) const {
         return mWeights[particle];
     throw OpenMMException("Illegal index for particle");
 }
-
+*/
 OutOfPlaneSite::OutOfPlaneSite(int particle1, int particle2, int particle3, double weight12, double weight13, double weightCross) :
         weight12(weight12), weight13(weight13), weightCross(weightCross) {
     vector<int> particles(3);
