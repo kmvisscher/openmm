@@ -5,6 +5,7 @@ from sys import stdout
 
 from itertools import repeat
 
+print "Current Version: ", Platform.getOpenMMVersion()
 
 system = System();
 #add a series of particles
